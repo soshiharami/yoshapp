@@ -10,6 +10,18 @@ def index():
     return render_template('index.html')
 
 
+@app.route('/user/:id', methods=['GET'])
+def userid():
+    if request.method == 'GET':
+        user_id = int(request.form['user_id'])
+        name = request.form['name']
+        birthday = request.form['birthday']
+        sex = int(request.form['sex'])
+
+        return json.dumps({'id': user_id, 'name': name,
+                           'birthday': datetime.datetime.fromtimestamp(int(birthday)).strftime("%Y-%M-%D"), 'sex': sex})
+
+
 @app.route('/user/self', methods=['POST'])
 def user():
     if request.method == 'POST':
@@ -18,7 +30,8 @@ def user():
         birthday = request.form['birthday']
         sex = int(request.form['sex'])
 
-        return json.dumps({'id': user_id, 'name': name, 'birthday': datetime.datetime.fromtimestamp(int(birthday)).strftime("%Y-%m-%D"), 'sex': sex})
+        return json.dumps({'id': user_id, 'name': name,
+                           'birthday': datetime.datetime.fromtimestamp(int(birthday)).strftime("%Y-%M-%D"), 'sex': sex})
 
 
 @app.route('/submit', methods=['POST'])
