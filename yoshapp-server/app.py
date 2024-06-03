@@ -113,7 +113,7 @@ def submit():
         bed_time = request.form['bed_time']
         wake_up_time = request.form['wake_up_time']
         memo = request.form['memo']
-        score = float(request.form['score'])
+        score = score_calculate(bed_time, wake_up_time)
 
         return json.dumps({'date': datetime.datetime.fromtimestamp(int(date)).strftime("%Y-%m-%D"), 'bed_time': datetime.datetime.fromtimestamp(int(bed_time)).strftime("%H:%M:%S"), 'wake_up_time': datetime.datetime.fromtimestamp(int(wake_up_time)).strftime("%H:%M:%S"), 'memo': memo, 'score': score})
 
