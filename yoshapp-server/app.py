@@ -105,7 +105,18 @@ def user():
         return json.dumps({'id': user_id, 'name': name,
                            'birthday': datetime.datetime.fromtimestamp(int(birthday)).strftime("%Y-%M-%D"), 'sex': sex})
 
+def score_calculate(bet_time,wake_up_time):
 
+    bed_time_str = bet_time
+    wake_time_str = wake_up_time
+    bed_time = datetime.strptime(bed_time_str, '%Y-%m-%d %H:%M:%S')
+    wake_time = datetime.strptime(wake_time_str, '%Y-%m-%d %H:%M:%S')
+    ideal_time = 25200#7hours
+    sleep_hours = (wake_time - bed_time).total_seconds()
+    sleep_deficit = abs(sleep_hours - ideal_time) 
+    score = max(0,((ideal_time - sleep_deficit) / ideal_time)*10000) 
+    return float(score)
+    
 @app.route('/submit', methods=['POST'])
 def submit():
     if request.method == 'POST':
