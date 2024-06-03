@@ -2,6 +2,7 @@ import datetime
 import sqlite3
 from flask import Flask, render_template, request
 import json
+
 app = Flask(__name__)
 
 app.config['JSON_AS_ASCII'] = False
@@ -15,7 +16,8 @@ def sleep_id(id):
     dbname = 'database.db'
     conn = sqlite3.connect(dbname)
     cur = conn.cursor()
-    cur.execute('select bed_time, wake_up_time, memo, score from data where id = ? limit ? offset ?', (id,limit,offset))
+    cur.execute('select bed_time, wake_up_time, memo, score from data where id = ? limit ? offset ?',
+                (id, limit, offset))
 
     sleep_list = []
     for row in cur:
@@ -30,23 +32,23 @@ def sleep_id(id):
     result['limit'] = limit
     result['offset'] = offset
 
-
     cur.close()
     conn.close()
     return json.dumps(result)
+
 
 @app.route('/ranking')
 def ranking():
     #DBからスコア情報を取得
     limit = request.args['limit']
     offset = request.args['offset']
-    return_dict = {} #user:{id,name,birthday,sex} ,rank, limit, offset
+    return_dict = {}  #user:{id,name,birthday,sex} ,rank, limit, offset
 
-    dbname = 'database.db' #データベースの名前
+    dbname = 'database.db'  #データベースの名前
     conn = sqlite3.connect(dbname)
     cur = conn.cursor()
 
-    cur.execute('select id, score from data order by score desc limit ? offset ?', (limit, offset))     #ランキング情報を取得するSQL文
+    cur.execute('select id, score from data order by score desc limit ? offset ?', (limit, offset))  #ランキング情報を取得するSQL文
     n = 1
     users = []
     for row in cur:
@@ -57,7 +59,6 @@ def ranking():
 
         users.append(user_dict)
         n += 1
-
 
     for n in range(len(users)):
         #users[n] = user_dict
@@ -75,7 +76,8 @@ def ranking():
     return_dict['limit'] = limit
     return_dict['offset'] = offset
 
-    return json.dumps(return_dict)    #JSON形式で返す
+    return json.dumps(return_dict)  #JSON形式で返す
+
 
 @app.route('/')
 def index():
@@ -89,7 +91,12 @@ def userid():
         name = request.form['name']
         birthday = request.form['birthday']
         sex = int(request.form['sex'])
-
+        conn = sqlite3.connect('database.db')
+        cur = conn.cursor()
+        cur.execute('insert into user (id, name, birthday, sex) values(?, ?, ?, ?)', (user_id, name, birthday,sex))
+        conn.commit()
+        cur.close()
+        conn.close()
         return json.dumps({'id': user_id, 'name': name,
                            'birthday': datetime.datetime.fromtimestamp(int(birthday)).strftime("%Y-%M-%D"), 'sex': sex})
 
@@ -101,7 +108,12 @@ def user():
         name = request.form['name']
         birthday = request.form['birthday']
         sex = int(request.form['sex'])
-
+        conn = sqlite3.connect('database.db')
+        cur = conn.cursor()
+        cur.execute('update user set name = ? where id = ?', (name, user_id))
+        conn.commit()
+        cur.close()
+        conn.close()
         return json.dumps({'id': user_id, 'name': name,
                            'birthday': datetime.datetime.fromtimestamp(int(birthday)).strftime("%Y-%M-%D"), 'sex': sex})
 
@@ -125,8 +137,16 @@ def submit():
         wake_up_time = request.form['wake_up_time']
         memo = request.form['memo']
         score = score_calculate(bed_time, wake_up_time)
-
-        return json.dumps({'date': datetime.datetime.fromtimestamp(int(date)).strftime("%Y-%m-%D"), 'bed_time': datetime.datetime.fromtimestamp(int(bed_time)).strftime("%H:%M:%S"), 'wake_up_time': datetime.datetime.fromtimestamp(int(wake_up_time)).strftime("%H:%M:%S"), 'memo': memo, 'score': score})
+        conn = sqlite3.connect('database.db')
+        cur = conn.cursor()
+        cur.execute('insert into user (date, bed_time, wake_up_time, memo) values(?, ?, ?, ?)', (date, bed_time, wake_up_time, memo))
+        conn.commit()
+        cur.close()
+        conn.close()
+        return json.dumps({'date': datetime.datetime.fromtimestamp(int(date)).strftime("%Y-%m-%D"),
+                           'bed_time': datetime.datetime.fromtimestamp(int(bed_time)).strftime("%H:%M:%S"),
+                           'wake_up_time': datetime.datetime.fromtimestamp(int(wake_up_time)).strftime("%H:%M:%S"),
+                           'memo': memo, 'score': score})
 
 
 if __name__ == '__main__':
