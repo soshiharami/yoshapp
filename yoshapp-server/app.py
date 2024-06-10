@@ -98,7 +98,7 @@ def userid():
         cur.close()
         conn.close()
         return json.dumps({'id': user_id, 'name': name,
-                           'birthday': datetime.datetime.fromtimestamp(int(birthday)).strftime("%Y-%M-%D"), 'sex': sex})
+                           'birthday': datetime.datetime.fromtimestamp(int(birthday)).strftime("%Y-%m-%d"), 'sex': sex})
 
 
 @app.route('/user/self', methods=['POST'])
@@ -115,7 +115,7 @@ def user():
         cur.close()
         conn.close()
         return json.dumps({'id': user_id, 'name': name,
-                           'birthday': datetime.datetime.fromtimestamp(int(birthday)).strftime("%Y-%M-%D"), 'sex': sex})
+                           'birthday': datetime.datetime.fromtimestamp(int(birthday)).strftime("%Y-%m-%d"), 'sex': sex})
 
 def score_calculate(bet_time,wake_up_time):
 
@@ -143,7 +143,7 @@ def submit():
         conn.commit()
         cur.close()
         conn.close()
-        return json.dumps({'date': datetime.datetime.fromtimestamp(int(date)).strftime("%Y-%m-%D"),
+        return json.dumps({'date': datetime.datetime.fromtimestamp(int(date)).strftime("%Y-%m-%d"),
                            'bed_time': datetime.datetime.fromtimestamp(int(bed_time)).strftime("%H:%M:%S"),
                            'wake_up_time': datetime.datetime.fromtimestamp(int(wake_up_time)).strftime("%H:%M:%S"),
                            'memo': memo, 'score': score})
