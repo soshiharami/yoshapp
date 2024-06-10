@@ -1,18 +1,112 @@
 import datetime
 import sqlite3
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, jsonify, session
+from flask_sqlalchemy import SQLAlchemy
+from flask_bcrypt import Bcrypt
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+from flask_cors import CORS, cross_origin
+import os
 import json
+from datetime import timedelta
 
 app = Flask(__name__)
+CORS(app, supports_credentials=True, resources={r"/*": {"origins": "*"}})
+app.config['SECRET_KEY'] = 'passworddddddsaduihau'
+app.config['SESSION_COOKIE_SECURE'] = True  # 開発環境ではFalse, 本番環境ではTrueに設定
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "None"
+app.config["SESSION_COOKIE_SECURE"] = True
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=3600)
+basedir = os.path.abspath(os.path.dirname(__file__))
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'site.db')
+db = SQLAlchemy(app)
+bcrypt = Bcrypt(app)
+login_manager = LoginManager(app)
+login_manager.login_view = 'login'
+app.config['CORS_HEADERS'] = 'Content-Type'
 
 app.config['JSON_AS_ASCII'] = False
 
 
+class User(db.Model, UserMixin):
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    password = db.Column(db.String(60), nullable=False)
+    name = db.Column(db.String(120), unique=False, nullable=False)
+    sex = db.Column(db.Integer(), unique=False, nullable=True)
+    birthday = db.Column(db.DateTime(), unique=False, nullable=True)
+
+
+class Sleep(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer)
+
+
+@app.after_request
+def after_request(response):
+    allowed_origins = ['http://127.0.0.1:5000/', 'http://localhost:3001/', 'http://127.0.0.1:3000/']
+    origin = request.headers.get('Origin')
+    if origin in allowed_origins:
+        response.headers.add('Access-Control-Allow-Origin', origin)
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+    response.headers.add('Access-Control-Allow-Headers', 'Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+    response.headers.add('Access-Control-Allow-Credentials', 'true')
+    return response
+
+
+@login_manager.user_loader
+def load_user(user_id):
+    print("soiadhoiashdioasjdi")
+    print(User.query.get(int(user_id)))
+    return User.query.get(int(user_id))
+
+
+@app.route('/register', methods=['POST'])
+@cross_origin()
+def register():
+    data = request.get_json()
+    hashed_password = bcrypt.generate_password_hash(data['password']).decode('utf-8')
+    user = User(email=data['email'], password=hashed_password, name=data['name'])
+    db.session.add(user)
+    db.session.commit()
+    return jsonify({'message': 'User registered successfully'}), 201
+
+
+@app.route('/login', methods=['POST'])
+@cross_origin()
+def login():
+    data = request.get_json()
+    user = User.query.filter_by(email=data['email']).first()
+    if user and bcrypt.check_password_hash(user.password, data['password']):
+        login_user(user)
+        session.permanent = True
+        return jsonify({'message': 'Login successful'}), 200
+    return jsonify({'message': 'Login unsuccessful'}), 401
+
+
+@app.route('/logout', methods=['POST'])
+@cross_origin()
+@login_required
+def logout():
+    logout_user()
+    return jsonify({'message': 'Logout successful'}), 200
+
+
+@app.route('/current_user', methods=['GET'])
+@cross_origin()
+@login_required
+def get_current_user():
+    return jsonify({'email': current_user.email, 'name': current_user.name}), 200
+
+
 @app.route('/sleep/<id>')
+@cross_origin()
 def sleep_id(id):
     result = {}
-    limit = request.args['limit']
-    offset = request.args['offset']
+    data = request.get_json()
+    limit = data['limit']
+    offset = data['offset']
     dbname = 'database.db'
     conn = sqlite3.connect(dbname)
     cur = conn.cursor()
@@ -38,6 +132,7 @@ def sleep_id(id):
 
 
 @app.route('/ranking')
+@cross_origin()
 def ranking():
     #DBからスコア情報を取得
     limit = request.args['limit']
@@ -80,11 +175,13 @@ def ranking():
 
 
 @app.route('/')
+@cross_origin()
 def index():
     return render_template('index.html')
 
 
 @app.route('/user/:id', methods=['GET'])
+@cross_origin()
 def userid():
     if request.method == 'GET':
         user_id = int(request.form['user_id'])
@@ -102,6 +199,7 @@ def userid():
 
 
 @app.route('/user/self', methods=['POST'])
+@cross_origin()
 def user():
     if request.method == 'POST':
         user_id = int(request.form['id'])
@@ -130,6 +228,7 @@ def score_calculate(bet_time,wake_up_time):
     return float(score)
     
 @app.route('/submit', methods=['POST'])
+@cross_origin()
 def submit():
     if request.method == 'POST':
         date = request.form['date']
@@ -150,4 +249,6 @@ def submit():
 
 
 if __name__ == '__main__':
+    with app.app_context():
+        db.create_all()
     app.run(debug=True)
