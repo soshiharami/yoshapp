@@ -215,14 +215,14 @@ def user():
         return json.dumps({'id': user_id, 'name': name,
                            'birthday': datetime.datetime.fromtimestamp(int(birthday)).strftime("%Y-%m-%d"), 'sex': sex})
 
-def score_calculate(bet_time,wake_up_time):
+def score_calculate(bed_time,wake_up_time):
 
-    bed_time_str = bet_time
+    bed_time_str = bed_time
     wake_time_str = wake_up_time
-    bed_time = datetime.strptime(bed_time_str, '%Y-%m-%d %H:%M:%S')
-    wake_time = datetime.strptime(wake_time_str, '%Y-%m-%d %H:%M:%S')
+    bed_time_datetime = datetime.strptime(bed_time_str, '%Y-%m-%d %H:%M:%S')
+    wake_time_datetime = datetime.strptime(wake_time_str, '%Y-%m-%d %H:%M:%S')
     ideal_time = 25200#7hours
-    sleep_hours = (wake_time - bed_time).total_seconds()
+    sleep_hours = (wake_time_datetime - bed_time_datetime).total_seconds()
     sleep_deficit = abs(sleep_hours - ideal_time) 
     score = max(0,((ideal_time - sleep_deficit) / ideal_time)*10000) 
     return float(score)
