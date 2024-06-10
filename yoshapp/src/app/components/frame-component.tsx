@@ -9,7 +9,7 @@ const daysOfWeek: string[] = ['日曜日', '月曜日', '火曜日', '水曜日'
 type GetJapaneseDay = (date: Date) => string;
 
 const getJapaneseDay: GetJapaneseDay = (date) => {
-  const dayIndex: number = parseInt(format(date, 'i', { locale: ja }), 10) - 1;
+  const dayIndex: number = Number.parseInt(format(date, 'i', { locale: ja }), 10) - 1;
   return daysOfWeek[dayIndex];
 };
 

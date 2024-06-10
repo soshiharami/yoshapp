@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import type React from 'react';
+import { useEffect, useState } from 'react';
 import DatePicker from 'react-datepicker';
 import Modal from 'react-modal';
 import 'react-datepicker/dist/react-datepicker.css';

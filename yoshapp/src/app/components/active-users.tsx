@@ -2,7 +2,7 @@
 import type { NextPage } from "next";
 import { useState, useEffect } from "react";
 import axios from "axios";
-import ProfileCard, { User, RankingResponse } from "./profileCord";
+import ProfileCard, { type User, type RankingResponse } from "./profileCord";
 
 const ActiveUsers: NextPage = () => {
   const [monthContainerDateTimePickerValue, setMonthContainerDateTimePickerValue] = useState(new Date());

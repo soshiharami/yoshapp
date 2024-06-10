@@ -4,7 +4,7 @@ import { format, addDays } from 'date-fns';
 import { Area, AreaChart, Brush, CartesianGrid, Legend, Line, LineChart,  ResponsiveContainer,  Tooltip, XAxis, YAxis } from "recharts";
 import { useEffect, useState } from "react";
 import axios from "axios";
-import { SleepData, SleepResponse } from "./calender";
+import type { SleepData, SleepResponse } from "./calender";
 
 const TotalPoints: NextPage = () => {
   const [sleepData, setSleepData] = useState<SleepData[]>([]);

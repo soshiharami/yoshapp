@@ -1,6 +1,7 @@
 'use client'
 import Link from 'next/link';
-import React, { useState } from 'react';
+import type React from 'react';
+import { useState } from 'react';
 import { FaChartBar, FaCalendarAlt, FaCog, FaPlus, FaBed } from 'react-icons/fa';
 
 interface SidebarProps {

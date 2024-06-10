@@ -1,5 +1,6 @@
 'use client'
-import React, { useState, useEffect } from 'react';
+import type React from 'react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
 import Login from '../components/login';
 import Register from '../components/signup';

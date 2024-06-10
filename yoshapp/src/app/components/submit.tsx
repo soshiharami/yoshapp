@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { format } from 'date-fns';
-import React, { useState } from 'react';
+import type React from 'react';
+import { useState } from 'react';
 
 export const SleepForm: React.FC = () => {
   const [sleepTime, setSleepTime] = useState('');
