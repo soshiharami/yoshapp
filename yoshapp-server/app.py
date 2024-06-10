@@ -1,4 +1,3 @@
-import datetime
 import sqlite3
 from flask import Flask, render_template, request, jsonify, session
 from flask_sqlalchemy import SQLAlchemy
@@ -8,6 +7,7 @@ from flask_cors import CORS, cross_origin
 import os
 import json
 from datetime import timedelta
+from datetime import datetime
 
 app = Flask(__name__)
 CORS(app, supports_credentials=True, resources={r"/*": {"origins": "*"}})
@@ -40,11 +40,16 @@ class User(db.Model, UserMixin):
 class Sleep(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer)
+    date = db.Column(db.String(100), nullable=False)
+    bed_time = db.Column(db.String(100), nullable=False)
+    wake_up_time = db.Column(db.String(100), nullable=False)
+    memo = db.Column(db.String(100), nullable=False)
+    score = db.Column(db.Float(), nullable=False)
 
 
 @app.after_request
 def after_request(response):
-    allowed_origins = ['http://127.0.0.1:5000/', 'http://localhost:3001/', 'http://127.0.0.1:3000/']
+    allowed_origins = ['http://localhost:3001/']
     origin = request.headers.get('Origin')
     if origin in allowed_origins:
         response.headers.add('Access-Control-Allow-Origin', origin)
@@ -57,8 +62,6 @@ def after_request(response):
 
 @login_manager.user_loader
 def load_user(user_id):
-    print("soiadhoiashdioasjdi")
-    print(User.query.get(int(user_id)))
     return User.query.get(int(user_id))
 
 
@@ -97,20 +100,21 @@ def logout():
 @cross_origin()
 @login_required
 def get_current_user():
-    return jsonify({'email': current_user.email, 'name': current_user.name}), 200
+    return jsonify({'email': current_user.email, 'name': current_user.name, 'id': current_user.id}), 200
 
 
-@app.route('/sleep/<id>')
+@app.route('/sleep/<id>', methods=['POST', 'OPTIONS'])
 @cross_origin()
+@login_required
 def sleep_id(id):
     result = {}
     data = request.get_json()
     limit = data['limit']
     offset = data['offset']
-    dbname = 'database.db'
+    dbname = 'site.db'
     conn = sqlite3.connect(dbname)
     cur = conn.cursor()
-    cur.execute('select bed_time, wake_up_time, memo, score from data where id = ? limit ? offset ?',
+    cur.execute('select bed_time, wake_up_time, memo, score, date from sleep where user_id = ? limit ? offset ?',
                 (id, limit, offset))
 
     sleep_list = []
@@ -120,6 +124,7 @@ def sleep_id(id):
         dict['wake_up_time'] = row[1]
         dict['memo'] = row[2]
         dict['score'] = row[3]
+        dict['date'] = row[4]
         sleep_list.append(dict)
 
     result['sleep'] = sleep_list
@@ -131,47 +136,50 @@ def sleep_id(id):
     return json.dumps(result)
 
 
-@app.route('/ranking')
+@app.route('/ranking', methods=['OPTIONS', 'GET'])
 @cross_origin()
 def ranking():
-    #DBからスコア情報を取得
-    limit = request.args['limit']
-    offset = request.args['offset']
-    return_dict = {}  #user:{id,name,birthday,sex} ,rank, limit, offset
+    limit = request.args.get('limit', type=int, default=10)
+    offset = request.args.get('offset', type=int, default=0)
+    return_dict = {}  # user: {id, name, birthday, sex}, rank, limit, offset
 
-    dbname = 'database.db'  #データベースの名前
+    dbname = 'site.db'  # データベースの名前
     conn = sqlite3.connect(dbname)
     cur = conn.cursor()
 
-    cur.execute('select id, score from data order by score desc limit ? offset ?', (limit, offset))  #ランキング情報を取得するSQL文
-    n = 1
+    # ユーザーごとの平均スコアを取得するSQLクエリ
+    cur.execute('''
+        SELECT s.user_id, AVG(s.score) as avg_score, u.name, u.birthday, u.sex
+        FROM sleep s
+        JOIN user u ON s.user_id = u.id
+        GROUP BY s.user_id
+        ORDER BY avg_score DESC
+        LIMIT ? OFFSET ?
+    ''', (limit, offset))
+
     users = []
+    rank = offset + 1  # ランクはオフセットに基づいて開始
+
     for row in cur:
-        #ランキングを決める
-        user_dict = {}
-        user_dict['id'] = row[0]
-        user_dict['rank'] = n
-
+        user_dict = {
+            'id': row[0],
+            'rank': rank,
+            'avg_score': row[1],
+            'name': row[2],
+            'birthday': row[3],
+            'sex': row[4]
+        }
         users.append(user_dict)
-        n += 1
-
-    for n in range(len(users)):
-        #users[n] = user_dict
-        cur.execute('select name, birthday, sex from user where id = ?', (users[n]['id'],))
-        print()
-        for row in cur:
-            users[n]['name'] = row[0]
-            users[n]['birthday'] = row[1]
-            users[n]['sex'] = row[2]
+        rank += 1
 
     cur.close()
     conn.close()
 
-    return_dict['user'] = users
+    return_dict['users'] = users
     return_dict['limit'] = limit
     return_dict['offset'] = offset
 
-    return json.dumps(return_dict)  #JSON形式で返す
+    return json.dumps(return_dict) 
 
 
 @app.route('/')
@@ -215,36 +223,46 @@ def user():
         return json.dumps({'id': user_id, 'name': name,
                            'birthday': datetime.datetime.fromtimestamp(int(birthday)).strftime("%Y-%m-%d"), 'sex': sex})
 
-def score_calculate(bed_time,wake_up_time):
-
-    bed_time_str = bed_time
+def score_calculate(bet_time, wake_up_time):
+    bed_time_str = bet_time
     wake_time_str = wake_up_time
-    bed_time_datetime = datetime.strptime(bed_time_str, '%Y-%m-%d %H:%M:%S')
-    wake_time_datetime = datetime.strptime(wake_time_str, '%Y-%m-%d %H:%M:%S')
-    ideal_time = 25200#7hours
-    sleep_hours = (wake_time_datetime - bed_time_datetime).total_seconds()
-    sleep_deficit = abs(sleep_hours - ideal_time) 
-    score = max(0,((ideal_time - sleep_deficit) / ideal_time)*10000) 
+    bed_time = datetime.strptime(bed_time_str, '%H:%M')
+    wake_time = datetime.strptime(wake_time_str, '%H:%M')
+
+    # 日付を跨いだ場合を考慮
+    if wake_time <= bed_time:
+        wake_time += timedelta(days=1)
+
+    ideal_time = 25200  # 7 hours in seconds
+    sleep_hours = (wake_time - bed_time).total_seconds()
+    sleep_deficit = abs(sleep_hours - ideal_time)
+    score = max(0, ((ideal_time - sleep_deficit) / ideal_time) * 10000)
     return float(score)
+
     
+
 @app.route('/submit', methods=['POST'])
 @cross_origin()
 def submit():
+    user = current_user
+    print(user.id)
     if request.method == 'POST':
-        date = request.form['date']
-        bed_time = request.form['bed_time']
-        wake_up_time = request.form['wake_up_time']
-        memo = request.form['memo']
+        data = request.get_json()
+        print(data)
+        date = data['date']
+        bed_time = data['bed_time']
+        wake_up_time = data['wake_up_time']
+        memo = data['memo']
         score = score_calculate(bed_time, wake_up_time)
-        conn = sqlite3.connect('database.db')
+        conn = sqlite3.connect('site.db')
         cur = conn.cursor()
-        cur.execute('insert into user (date, bed_time, wake_up_time, memo) values(?, ?, ?, ?)', (date, bed_time, wake_up_time, memo))
+        cur.execute('insert into sleep (date, user_id ,bed_time, wake_up_time, memo, score) values(?, ?, ?, ?, ?, ?)', (date, user.id ,bed_time, wake_up_time, memo, score))
         conn.commit()
         cur.close()
         conn.close()
-        return json.dumps({'date': datetime.datetime.fromtimestamp(int(date)).strftime("%Y-%m-%d"),
-                           'bed_time': datetime.datetime.fromtimestamp(int(bed_time)).strftime("%H:%M:%S"),
-                           'wake_up_time': datetime.datetime.fromtimestamp(int(wake_up_time)).strftime("%H:%M:%S"),
+        return json.dumps({'date': date,
+                           'bed_time': bed_time,
+                           'wake_up_time': wake_up_time,
                            'memo': memo, 'score': score})
 
 

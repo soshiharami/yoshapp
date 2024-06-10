@@ -17,8 +17,8 @@ const LightDashboard: NextPage = () => {
   const main = () => {
       if(activeIndex == 0){
           return(
-        <div className="relative ml-20"> 
-          <main className="flex flex-col items-start justify-start gap-6">
+        <div className="relative ml-20 w-full"> 
+          <main className="flex flex-col items-start justify-start gap-6 w-full">
             <section className="w-full">
               <h1 className="text-3xl font-bold mb-4">
                 My Dashboard

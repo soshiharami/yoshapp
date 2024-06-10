@@ -1,45 +1,41 @@
 "use client"
 import type { NextPage } from "next";
-import { useState } from "react";
-import { TextField, Icon } from "@mui/material";
-import ProfileCard from "./profileCord";
-
-interface Profile {
-  name: string;
-  location: string;
-  level: number;
-  points: number;
-  imageUrl: string;
-}
-
-const profiles: Profile[] = [
-  { name: '篠原総士', location: 'Copenhagen, ', level: 15, points: 47, imageUrl: 'https://via.placeholder.com/60' },
-  { name: '小沢颯人', location: 'New York, USA', level: 12, points: 38, imageUrl: 'https://via.placeholder.com/60' },
-  { name: '會澤太一', location: 'New York, USA', level: 12, points: 12, imageUrl: 'https://via.placeholder.com/60' },
-  { name: 'BOQIAN WU', location: 'New York, USA', level: 12, points: 12, imageUrl: 'https://via.placeholder.com/60' },
-  { name: 'BOQIAN WU', location: 'New York, USA', level: 12, points: 12, imageUrl: 'https://via.placeholder.com/60' },
-  { name: 'BOQIAN WU', location: 'New York, USA', level: 12, points: 12, imageUrl: 'https://via.placeholder.com/60' },
-  { name: 'BOQIAN WU', location: 'New York, USA', level: 12, points: 12, imageUrl: 'https://via.placeholder.com/60' },
-  { name: 'BOQIAN WU', location: 'New York, USA', level: 12, points: 1, imageUrl: 'https://via.placeholder.com/60' },
-  { name: 'BOQIAN WU', location: 'New York, USA', level: 12, points: 1, imageUrl: 'https://via.placeholder.com/60' },
-  { name: 'BOQIAN WU', location: 'New York, USA', level: 12, points: 1, imageUrl: 'https://via.placeholder.com/60' },
-];
+import { useState, useEffect } from "react";
+import axios from "axios";
+import ProfileCard, { User, RankingResponse } from "./profileCord";
 
 const ActiveUsers: NextPage = () => {
-  const [
-    monthContainerDateTimePickerValue,
-    setMonthContainerDateTimePickerValue,
-  ] = useState(new Date());
-
-  const [visibleProfiles, setVisibleProfiles] = useState<Profile[]>(profiles.slice(0, 10));
+  const [monthContainerDateTimePickerValue, setMonthContainerDateTimePickerValue] = useState(new Date());
   const [count, setCount] = useState<number>(10);
+  const [profiles, setProfiles] = useState<User[]>([]);
+  const [visibleProfiles, setVisibleProfiles] = useState<User[]>([]);
+
+  useEffect(() => {
+    const fetchRankingData = async () => {
+      try {
+        const response = await axios.get<RankingResponse>('http://127.0.0.1:5000/ranking', {
+          params: {
+            limit: count,
+            offset: 0,
+          },
+        });
+        setProfiles(response.data.users);
+        setVisibleProfiles(response.data.users.slice(0, count));
+      } catch (error) {
+        console.error('Error fetching ranking data:', error);
+      }
+    };
+
+    fetchRankingData();
+  }, [count]);
 
   const loadMore = () => {
     setVisibleProfiles(profiles.slice(0, count + 10));
     setCount(count + 10);
   };
+
   return (
-    <div className="flex flex-col items-start justify-start py-8 px-4 box-border gap-6 w-full text-left text-sm text-darkslategray font-roboto">
+<div className="flex flex-col items-start justify-start py-8 px-4 box-border gap-6 w-full text-left text-sm text-darkslategray font-roboto">
       <div className="w-full relative shadow-sm rounded-lg bg-white hidden" />
       <div className="w-full flex flex-col items-start justify-start gap-6 text-xl">
         <h3 className="m-0 text-lg font-normal">Ranking</h3>
@@ -62,3 +58,4 @@ const ActiveUsers: NextPage = () => {
 };
 
 export default ActiveUsers;
+

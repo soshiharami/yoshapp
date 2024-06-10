@@ -2,33 +2,39 @@
 import type { NextPage } from "next";
 import { format, addDays } from 'date-fns';
 import { Area, AreaChart, Brush, CartesianGrid, Legend, Line, LineChart,  ResponsiveContainer,  Tooltip, XAxis, YAxis } from "recharts";
-
-type sleepData = {
-    date: string,
-    points: number
-}
-
-const generateSleepData = (startDate: string, endDate: string): sleepData[] => {
-  const data: sleepData[] = [];
-  let currentDate = new Date(startDate);
-  const end = new Date(endDate);
-
-  while (currentDate <= end) {
-    const points = Math.floor(Math.random() * 5000);
-    data.push({ date: format(currentDate, 'yyyy-MM-dd'), points });
-    currentDate = addDays(currentDate, 1);
-  }
-
-  return data;
-};
-
-// 使用例
-const start = '2024-08-01';
-const end = '2024-10-10';
-const data = generateSleepData(start, end);
-
+import { useEffect, useState } from "react";
+import axios from "axios";
+import { SleepData, SleepResponse } from "./calender";
 
 const TotalPoints: NextPage = () => {
+  const [sleepData, setSleepData] = useState<SleepData[]>([]);
+  const [limit, setLimit] = useState<number>(1000);
+  const [offset, setOffset] = useState<number>(0);
+  const [highlightedDates, setHighlightedDates] = useState<Date[]>([]);
+
+    useEffect(() => {
+        const fetchSleepData = async () => {
+            try {
+                const res = await axios.get('http://127.0.0.1:5000/current_user', { withCredentials: true });
+                const response = await axios.post<SleepResponse>(`http://127.0.0.1:5000/sleep/${res.data.id}`, {
+                    limit: limit,
+                    offset: offset
+                }, {withCredentials: true});
+        const sortedData = response.data.sleep.sort((a, b) => {
+          return new Date(a.date).getTime() - new Date(b.date).getTime();
+        });
+                setSleepData(sortedData);
+                const sleepDates = response.data.sleep.map(sleep => new Date(sleep.date));
+                setHighlightedDates(sleepDates);
+                console.debug(sleepData)
+            } catch (error) {
+                console.error('Error fetching sleep data:', error);
+            }
+        };
+
+        fetchSleepData();
+    }, [limit, offset]);
+
   return (
     <div className="">
       <h3 className="">
@@ -38,25 +44,25 @@ const TotalPoints: NextPage = () => {
     <LineChart
       width={500}
       height={300}
-      data={data}
+      data={sleepData}
       margin={{
         top: 100, right: 30, left: 20, bottom: 5,
       }}
     >
       <CartesianGrid strokeDasharray="3 3" />
-      <XAxis dataKey="date" />
-      <YAxis />
+      <XAxis dataKey="date"/>
+      <YAxis dataKey="score"/>
       <Tooltip />
       <Legend />
-      <Line type="monotone" dataKey="points" stroke="#8884d8" activeDot={{ r: 8 }} />
+      <Line type="monotone" dataKey="score" stroke="#8884d8" activeDot={{ r: 8 }} />
   <Brush
     dataKey="time"
     stroke="#448aff"
     height={30}
     startIndex={0}
-    endIndex={data.length - 1}
+    endIndex={sleepData.length - 1}
   >
-    <AreaChart data={data}>
+    <AreaChart data={sleepData}>
       <CartesianGrid strokeDasharray="3 3" />
       <Area
         type="monotone"
